@@ -1,22 +1,130 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Board</title>
-    <style>
-        .square {
-            width: 45.5px;
-            height: 45.5px;
-            max-width: 520px;
-            font-size: 18px;
-            gap: 6.5px;
-        }
-    </style>
+<style>
+  body { background: #1a1a1a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+  
+  /* The 8x10 Grid Container */
+  .keno-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 5px;
+    padding: 10px;
+    max-width: 400px;
+  }
+
+  /* Individual Number Squares */
+  .number {
+    width: 35px;
+    height: 35px;
+    background: #333;
+    border: 1px solid #555;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 4px;
+  }
+
+  /* State Classes */
+  .number.selected { background: #007bff; border-color: #00bcff; }
+  .number.winner { background: #ffcc00; color: black; }
+  .number.hit { background: #28a745; border-color: #34ce57; }
+
+  button { margin-top: 20px; padding: 10px 20px; font-size: 16px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+  button:hover { background: #0056b3; }
+
+  #log-container { margin-top: 20px; width: 100%; max-width: 400px; }
+  #results-log { list-style: none; padding: 0; font-size: 13px; color: #ccc; }
+  #results-log li { border-bottom: 1px solid #444; padding: 8px 0; }
+</style>
 </head>
 <body>
-    <div class="board">
-        <!-- Board content goes here -->
-    </div>
+
+  <h2>Keno Friends Edition</h2>
+  <p style="font-size: 14px; color: #aaa;">Select up to 10 numbers, then click Draw Numbers</p>
+  <div class="keno-grid" id="grid"></div>
+  <button onclick="simulateDraw()">Draw Numbers</button>
+
+  <div id="log-container">
+    <h3>Recent Draws</h3>
+    <ul id="results-log">
+      <li>No games played yet.</li>
+    </ul>
+  </div>
+
+  <script>
+    const grid = document.getElementById('grid');
+    let playerPicks = new Set();
+
+    // 1. Initialize the Grid
+    for (let i = 1; i <= 80; i++) {
+        let div = document.createElement('div');
+        div.className = 'number';
+        div.id = `num-${i}`;
+        div.innerText = i;
+        
+        div.onclick = () => {
+            if (playerPicks.has(i)) {
+                playerPicks.delete(i);
+                div.classList.remove('selected');
+            } else if (playerPicks.size < 10) {
+                playerPicks.add(i);
+                div.classList.add('selected');
+            } else {
+                alert("Maximum 10 numbers allowed!");
+            }
+        };
+        grid.appendChild(div);
+    }
+
+    // 2. The Draw Function
+    function simulateDraw() {
+        if (playerPicks.size === 0) return alert("Pick some numbers first!");
+
+        // Reset board colors (keep player selections)
+        document.querySelectorAll('.number').forEach(el => {
+            el.classList.remove('winner', 'hit');
+        });
+
+        // Generate 20 random numbers
+        let houseDraw = new Set();
+        while (houseDraw.size < 20) {
+            houseDraw.add(Math.floor(Math.random() * 80) + 1);
+        }
+
+        // 3. Compare and Update UI
+        let matchCount = 0;
+        houseDraw.forEach(num => {
+            const el = document.getElementById(`num-${num}`);
+            
+            if (playerPicks.has(num)) {
+                el.classList.add('hit');
+                matchCount++;
+            } else {
+                el.classList.add('winner');
+            }
+        });
+
+        // 4. Update the Results Log
+        const log = document.getElementById('results-log');
+        const timestamp = new Date().toLocaleTimeString();
+        
+        const entry = document.createElement('li');
+        entry.innerHTML = `
+            <strong>[${timestamp}]</strong><br>
+            <span style="color:#ffcc00">Draw:</span> ${Array.from(houseDraw).sort((a,b) => a-b).join(', ')}<br>
+            <span style="color:#28a745">Matches:</span> ${matchCount} (out of ${playerPicks.size})
+        `;
+
+        if (log.children[0] && log.children[0].innerText.includes("No games")) log.innerHTML = "";
+        log.prepend(entry);
+
+        setTimeout(() => {
+            alert(\`Draw Complete! Matches: \${matchCount}\`);
+        }, 500);
+    }
+  </script>
 </body>
 </html>
